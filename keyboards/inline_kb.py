@@ -8,7 +8,8 @@ def categories_kb(categories):
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def portfolio_pagination_kb(current_index, total, category_id):
+def portfolio_pagination_kb(current_index, total, category_id, total_count=None):
+    """Клавиатура пагинации для портфолио."""
     buttons = []
     if total > 1:
         nav_buttons = [
@@ -17,4 +18,10 @@ def portfolio_pagination_kb(current_index, total, category_id):
             InlineKeyboardButton(text="▶", callback_data=f"nav_next_{current_index}_{category_id}")
         ]
         buttons.append(nav_buttons)
+    
+    # Добавляем информацию о странице если есть total_count
+    if total_count:
+        page_info = f"Фото: {current_index + 1} из {total_count}"
+        buttons.append([InlineKeyboardButton(text=page_info, callback_data="noop")])
+    
     return InlineKeyboardMarkup(inline_keyboard=buttons)

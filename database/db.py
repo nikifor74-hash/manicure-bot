@@ -1,14 +1,18 @@
 import os
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker, AsyncEngine
 from sqlalchemy.orm import declarative_base
+from sqlalchemy.pool import StaticPool
 from config import DB_PATH
+import logging
 
-_engine = None
+logger = logging.getLogger(__name__)
+
+_engine: AsyncEngine = None
 _async_session_maker = None
 
 
 def get_engine():
-    """Ленивое создание движка с проверкой существования директории для SQLite."""
+    """Ленивое создание движка с проверкой существования директории для SQLite и connection pooling."""
     global _engine
     if _engine is None:
         db_url = DB_PATH
@@ -22,7 +26,15 @@ def get_engine():
         elif db_url.startswith("sqlite://"):
             db_url = db_url.replace("sqlite://", "sqlite+aiosqlite://", 1)
 
-        _engine = create_async_engine(db_url, echo=False)
+        # Для SQLite используем StaticPool для улучшения производительности при конкурентном доступе
+        # Для production с PostgreSQL/MySQL следует использовать QueuePool с pool_size и max_overflow
+        _engine = create_async_engine(
+            db_url,
+            echo=False,
+            poolclass=StaticPool,  # Улучшает производительность для SQLite
+            connect_args={"check_same_thread": False}  # Разрешаем использование в разных потоках
+        )
+        logger.info(f"Database engine created for {db_url}")
     return _engine
 
 
