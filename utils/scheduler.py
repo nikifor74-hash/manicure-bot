@@ -9,7 +9,15 @@ from database.models import Appointment
 
 logger = logging.getLogger(__name__)
 
-scheduler = AsyncIOScheduler(timezone=TIMEZONE)
+# Создаем scheduler с настройками для асинхронной работы
+scheduler = AsyncIOScheduler(
+    timezone=TIMEZONE,
+    job_defaults={
+        'coalesce': True,  # Объединять пропущенные запуски
+        'max_instances': 3,  # Максимум 3 одновременных выполнения
+        'misfire_grace_time': 60  # Допустимое время опоздания (сек)
+    }
+)
 
 
 async def send_reminder(bot, user_id, appointment_id, appointment_datetime):
@@ -36,10 +44,29 @@ def schedule_reminder(appointment_id, user_id, appointment_datetime: datetime, b
             trigger=DateTrigger(run_date=remind_time),
             args=[bot, user_id, appointment_id, appointment_datetime],
             id=f"reminder_{appointment_id}",
-            replace_existing=True
+            replace_existing=True,
+            misfire_grace_time=60
         )
         logger.info(f"Scheduled reminder for appointment {appointment_id} at {remind_time}")
 
 
 def remove_reminder(appointment_id):
-    scheduler.remove_job(f"reminder_{appointment_id}")
+    try:
+        scheduler.remove_job(f"reminder_{appointment_id}")
+        logger.debug(f"Removed reminder for appointment {appointment_id}")
+    except Exception as e:
+        logger.warning(f"Failed to remove reminder {appointment_id}: {e}")
+
+
+async def start_scheduler():
+    """Запуск планировщика задач."""
+    if not scheduler.running:
+        scheduler.start()
+        logger.info("Scheduler started")
+
+
+async def stop_scheduler():
+    """Остановка планировщика задач."""
+    if scheduler.running:
+        scheduler.shutdown(wait=False)
+        logger.info("Scheduler stopped")

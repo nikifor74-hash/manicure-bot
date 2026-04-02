@@ -4,7 +4,8 @@ from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from config import BOT_TOKEN
 from database.db import init_db
-from utils.scheduler import scheduler
+from utils.scheduler import start_scheduler, stop_scheduler
+from utils.cache import init_cache
 from handlers import common, appointment, portfolio, info, admin
 import os
 
@@ -16,12 +17,18 @@ async def on_startup(bot: Bot):
     await init_db()
     os.makedirs("media", exist_ok=True)
     os.makedirs("data", exist_ok=True)
-    scheduler.start()
-    logger.info("Bot started")
+    
+    # Инициализация кэша
+    await init_cache(max_size=1000, default_ttl=300)
+    
+    # Запуск асинхронного планировщика
+    await start_scheduler()
+    
+    logger.info("Bot started with optimizations")
 
 
 async def on_shutdown(bot: Bot):
-    scheduler.shutdown()
+    await stop_scheduler()
     logger.info("Bot stopped")
 
 
