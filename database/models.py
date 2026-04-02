@@ -16,6 +16,11 @@ class User(Base):
 
     appointments = relationship("Appointment", back_populates="user")
 
+    __table_args__ = (
+        Index('ix_users_telegram_id', 'telegram_id'),
+        Index('ix_users_registered_at', 'registered_at'),
+    )
+
 
 class Category(Base):
     __tablename__ = 'categories'
@@ -37,6 +42,11 @@ class PortfolioImage(Base):
 
     category = relationship("Category", back_populates="images")
 
+    __table_args__ = (
+        Index('ix_portfolio_category_id', 'category_id'),
+        Index('ix_portfolio_created_at', 'created_at'),
+    )
+
 
 class Price(Base):
     __tablename__ = 'prices'
@@ -46,6 +56,11 @@ class Price(Base):
     description = Column(Text)
     category = Column(String, index=True)
 
+    __table_args__ = (
+        Index('ix_prices_service_name', 'service_name'),
+        Index('ix_prices_category', 'category'),
+    )
+
 
 class Schedule(Base):
     __tablename__ = 'schedule'
@@ -54,6 +69,10 @@ class Schedule(Base):
     start_time = Column(Time, nullable=True)
     end_time = Column(Time, nullable=True)
     is_working = Column(Boolean, default=True, index=True)
+
+    __table_args__ = (
+        Index('ix_schedule_day_of_week', 'day_of_week'),
+    )
 
 
 class Appointment(Base):
@@ -69,3 +88,11 @@ class Appointment(Base):
     reminder_sent = Column(Boolean, default=False, index=True)
 
     user = relationship("User", back_populates="appointments")
+
+    __table_args__ = (
+        Index('ix_appointments_user_id', 'user_id'),
+        Index('ix_appointments_date', 'date'),
+        Index('ix_appointments_status', 'status'),
+        Index('ix_appointments_date_time', 'date', 'time'),
+        Index('ix_appointments_user_status', 'user_id', 'status'),
+    )
